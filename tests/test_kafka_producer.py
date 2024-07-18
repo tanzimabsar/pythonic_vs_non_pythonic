@@ -25,22 +25,23 @@ def acked(err, msg):
 
 
 class EventProducer(object):
-    def __init__(self, client=None, config=None):
+    def __init__(self, topic: str, client=None, config=None, ):
         self.client = client
+        self.topic = topic
 
         if not self.client:
             self.client = Producer(config)
 
-    def send(self, topic, message):
+    def send(self, message):
         try:
-            self.client.produce(topic, message, callback=acked)
+            self.client.produce(self.topic, message, callback=acked)
         except KafkaException as err:
             raise err
         finally:
             self.client.poll(1)
 
-    def send_batch(self, topic, messages):
-        [self.send(topic, message) for message in messages]
+    def send_batch(self, messages):
+        [self.send(message) for message in messages]
 
     def __enter__(self):
         return self
@@ -56,8 +57,8 @@ def test_kafka_producer():
     By using Python Idioms and PEP 8 Style Guidelines.
     """
 
-    with EventProducer(config=CONFIG) as kafka:
-        kafka.send('test', f'Hello Kafka {uuid.uuid4()}')
+    with EventProducer(config=CONFIG, topic='test') as kafka:
+        kafka.send(f'Hello Kafka {uuid.uuid4()}')
 
 
 def test_kafka_microbatch():
@@ -68,5 +69,5 @@ def test_kafka_microbatch():
     """
 
     for batch in batch_of(100, events):
-        with EventProducer(config=CONFIG) as ep:
-            ep.send_batch('test', batch)
+        with EventProducer(config=CONFIG, topic='test') as ep:
+            ep.send_batch(batch)
