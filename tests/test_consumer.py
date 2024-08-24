@@ -48,8 +48,10 @@ class Queue(object):
                 break
 
             msg = self.client.poll(timeout=1.0)
+
             if msg is None:
                 continue
+
             elif msg.error():
                 if msg.error().code() == KafkaError._PARTITION_EOF:
                     continue
@@ -72,12 +74,10 @@ class Queue(object):
         return len(self.messages)
 
     def __next__(self):
+        # Gets called at each iteration
         return self
 
 
 def test_read_messages():
-    consumer = Consumer(config)
-    consumer.subscribe(topics)
-
-    messages = Queue(consumer, size=10)
+    messages = Queue(Consumer(config), size=10)
     assert len(list(messages)) == 10
