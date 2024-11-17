@@ -16,7 +16,14 @@ from pydantic import Field, BaseModel
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-class SQL(object):
+SCHEMA = pa.schema([
+    pa.field('id', pa.string()),
+    pa.field('batch_id', pa.string()),
+    pa.field('created_at', pa.timestamp('ms')),
+    pa.field('status', pa.string())
+])
+
+class StateStore:
     def __init__(self, namespace: str, catalog: SqlCatalog, **kwargs):
         self.namespace = namespace
         self.catalog = catalog
@@ -38,7 +45,7 @@ class SQL(object):
 
     def add(self, table, schema):
         with suppress(pyiceberg.exceptions.TableAlreadyExistsError):
-            logger.warning('Already exists!')
+            logger.info('Already exists!')
             self.catalog.create_table(f'{self.namespace}.{table}', schema=schema)
 
         return self.catalog.load_table(f'{self.namespace}.{table}')
@@ -51,13 +58,8 @@ class Request(BaseModel):
     status: str = Field(default='pending')
 
 def test_access_state_store():
-    store = SQL(namespace=None, catalog=None, warehouse_path="./data/warehouse")
-    table = store.add(table='requests', schema=pa.schema([
-        pa.field('id', pa.string()),
-        pa.field('batch_id', pa.string()),
-        pa.field('created_at', pa.timestamp('ms')),
-        pa.field('status', pa.string()),
-    ]))
+    store = StateStore(namespace=None, catalog=None, warehouse_path="./data/warehouse")
+    table = store.add(table='requests', schema=SCHEMA)
 
     my_record = Request()
     df = pa.Table.from_pylist([my_record.model_dump()])
@@ -67,9 +69,29 @@ def test_access_state_store():
 
 
 def test_create_if_not_exists():
-    store = SQL(namespace=None, catalog=None, warehouse_path="./data/warehouse")
+    store = StateStore(namespace=None, catalog=None, warehouse_path="./data/warehouse")
     store.add(table='users', schema=pa.schema([
         pa.field('id', pa.int64()),
         pa.field('name', pa.string())
     ]))
+
+def test_use_database_with_sql():
+    store = StateStore(namespace=None, catalog=None, warehouse_path="./data/warehouse")
+    table = store.add(table='requests', schema=SCHEMA)
+
+    conn = table.scan().to_duckdb(table_name='requests')
+
+    df = pa.Table.from_pylist([Request().model_dump() for _ in range(94 * 1000)])
+    table.append(df)
+    print(conn.execute("SELECT * FROM requests where batch_id = '0591c741-1ffa-451d-aaf6-b062221e87fa'").fetchdf())
+
+    """ 
+    Identify what email belongs to which batch 
+    Identify what email was obfuscated in which table
+    
+    """
+
+
+
+
 

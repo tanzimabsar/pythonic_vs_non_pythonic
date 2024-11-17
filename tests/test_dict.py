@@ -14,14 +14,15 @@ class SQL(abc.MutableMapping):
 
         with suppress(sqlite3.OperationalError):
             cursor.execute("CREATE TABLE users (name TEXT, email TEXT)")
-            cursor.execute("INSERT INTO users VALUES ('John Doe', 'email')")
+            cursor.execute("INSERT INTO users VALUES ('John Doe', 'example@example.com')")
 
         self.update(items, **kwargs)
 
     def __get__(self, key):
         cursor = self.conn.cursor()
-        cursor.execute(f"SELECT * FROM users WHERE name = '{key}'")
-        return cursor.fetchall()
+        cursor.execute(f"SELECT email FROM users WHERE name = '{key}'")
+        results = cursor.fetchall()
+        return results[0][0]
 
     def __delitem__(self, key):
         cursor = self.conn.cursor()
@@ -30,8 +31,8 @@ class SQL(abc.MutableMapping):
 
     def __getitem__(self, item):
         cursor = self.conn.cursor()
-        cursor.execute(f"SELECT * FROM users WHERE name = '{item}'")
-        return cursor.fetchall()
+        cursor.execute(f"SELECT email FROM users WHERE name = '{item}'")
+        return cursor.fetchall()[0][0]
 
     def __iter__(self):
         cursor = self.conn.cursor()
@@ -51,10 +52,18 @@ class SQL(abc.MutableMapping):
 
 def test_create_query():
     users = SQL()
-    assert users['John Doe'] == [('John Doe', 'email')]
+    assert users['John Doe'] == 'example@example.com'
 
 def test_assert_len():
     assert len(SQL()) == 1
+
+def test_assert_generate():
+    lookup = SQL()
+    emails = ['John Doe']
+
+    for email in emails:
+        print(email, lookup[email])
+
 
 
 

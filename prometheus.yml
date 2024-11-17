@@ -1,0 +1,8 @@
+# prometheus.yml
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'python-metrics'
+    static_configs:
+      - targets: ['python-client:8000']  # Assuming Python client runs on port 8000
