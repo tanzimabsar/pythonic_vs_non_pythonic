@@ -19,3 +19,19 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+
+  mongodb:
+      image: mongo:6.0
+      container_name: mongodb_container
+      ports:
+        - "27017:27017" # Host port : Container port
+      environment:
+        MONGO_INITDB_ROOT_USERNAME: root # Set the root username
+        MONGO_INITDB_ROOT_PASSWORD: example # Set the root password
+      volumes:
+        - mongodb_data:/data/db # Persistent data storage
+
+volumes:
+  mongodb_data:
+    driver: local

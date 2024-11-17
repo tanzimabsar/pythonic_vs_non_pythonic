@@ -40,7 +40,7 @@ class EventProducer(object):
         finally:
             self.client.poll(1)
 
-    def send_batch(self, messages):
+    def send_multiple(self, messages):
         [self.send(message) for message in messages]
 
     def __enter__(self):
@@ -69,5 +69,5 @@ def test_kafka_microbatch():
     """
 
     for batch in batch_of(100, events):
-        with EventProducer(config=CONFIG, topic='test') as ep:
-            ep.send_batch(batch)
+        with EventProducer(config=CONFIG, topic='test') as producer:
+            producer.send_multiple(batch)
